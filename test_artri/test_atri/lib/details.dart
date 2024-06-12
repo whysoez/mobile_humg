@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:localstorage/localstorage.dart';
+import 'package:test_atri/main.dart';
+import 'package:test_atri/main4.dart';
 import 'package:test_atri/shared/listitem.dart';
 
 class DetailsScreen extends StatelessWidget {
   final String tag;
   final NewsItem item;
+  final LocalStorage storage;
 
-  DetailsScreen({required this.item, required this.tag})
-      : super();
+  DetailsScreen({required this.item, required this.tag, required this.storage}) : super();
 
+// LocalStorage storage = LocalStorage("newsapp");
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -19,7 +23,9 @@ class DetailsScreen extends StatelessWidget {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Image.network(item.imgUrl),
+                    Hero(
+                        tag: '${item.newsTitle}',
+                        child: Image.network(item.imgUrl)),
                     SizedBox(
                       height: 10.0,
                     ),
@@ -47,7 +53,7 @@ class DetailsScreen extends StatelessWidget {
                               ),
                               Icon(Icons.date_range),
                               Text(
-                                item.author,
+                                item.date,
                                 style: TextStyle(fontSize: 12),
                               )
                             ],
@@ -56,13 +62,43 @@ class DetailsScreen extends StatelessWidget {
                             height: 20.0,
                           ),
                           Text(
-                            item.newsTitle,
+                            item.content,
                             style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.normal
-                            ),
+                                fontSize: 22, fontWeight: FontWeight.normal),
                           )
                         ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 16),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MyCustomForm(newsItem: item, typeInput: 1, storage: storage,)));
+                        },
+                        child: Text("Edit News"),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 16),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          var keyUpdate = storage.getItem('key').toString().replaceAll('${item.type}${item.newsTitle}${item.date}', "").replaceAll(';;', ";");
+                          if(keyUpdate == ';'){
+                            keyUpdate = "";
+                          }
+                          storage.setItem("key", keyUpdate);
+                          storage.deleteItem('${item.type}${item.newsTitle}${item.date}');
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MyApp()));
+                        },
+                        child: Text("Delete News"),
                       ),
                     )
                   ]),

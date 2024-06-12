@@ -1,34 +1,24 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:localstorage/localstorage.dart';
+import 'package:test_atri/details.dart';
 import 'package:test_atri/fetchPlaceholder.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyCustomForm(),
-    );
-  }
-}
+import 'package:test_atri/shared/listitem.dart';
 
 // Define a custom Form widget.
 class MyCustomForm extends StatefulWidget {
-  const MyCustomForm({super.key});
+  final NewsItem newsItem;
+  final int typeInput;
+  final LocalStorage storage;
+  const MyCustomForm(
+      {required this.newsItem, required this.typeInput, required this.storage})
+      : super();
 
   @override
   MyCustomFormState createState() {
-    return MyCustomFormState();
+    return MyCustomFormState(newsItem, typeInput, storage);
   }
 }
 
@@ -40,15 +30,21 @@ class MyCustomFormState extends State<MyCustomForm> {
   //
   // Note: This is a `GlobalKey<FormState>`,
   // not a GlobalKey<MyCustomFormState>.
+  NewsItem item = NewsItem("", "", "", "", "", "");
+  int typeEdit = 0;
+  LocalStorage storage = LocalStorage("newsapp");
   final _formKey = GlobalKey<FormState>();
-  final name = TextEditingController();
-  final lastname = TextEditingController();
-  final khoa = TextEditingController();
-  final lop = TextEditingController();
-  final place = TextEditingController();
-  final phone = TextEditingController();
+  final type = TextEditingController();
+  final title = TextEditingController();
+  final content = TextEditingController();
+  final author = TextEditingController();
+  final image = TextEditingController();
 
-  final LocalStorage storage = LocalStorage('storage.json');
+  MyCustomFormState(NewsItem newsItem, int typeInput, LocalStorage lstorage) {
+    this.item = newsItem;
+    this.typeEdit = typeInput;
+    this.storage = lstorage;
+  }
 
   int _index = 0;
 
@@ -58,10 +54,41 @@ class MyCustomFormState extends State<MyCustomForm> {
     _loadData();
   }
 
+  void addItemsToLocalStorage(NewsItem item) {
+    String keys = '';
+    var test = storage.getItem('key');
+    if (storage.getItem('key') != null && storage.getItem('key') != "") {
+      keys = '${storage.getItem('key')};';
+    }
+    storage.deleteItem('key');
+    keys = '${keys}${item.type}${item.newsTitle}${item.date}';
+    storage.setItem('key', keys);
+    String itemNews = jsonEncode(item.ToJson());
+    storage.setItem('${item.type}${item.newsTitle}${item.date}', '${itemNews}');
+  }
+
+  String getType() {
+    if (typeEdit == 0) {
+      return "Create News";
+    } else {
+      return "Edit News";
+    }
+  }
+
   void _loadData() async {
     setState(() {
+      type.value = TextEditingValue(text: item.type);
+      title.value = TextEditingValue(text: item.newsTitle);
+      content.value = TextEditingValue(text: item.content);
+      author.value = TextEditingValue(text: item.author);
+      image.value = TextEditingValue(text: item.imgUrl);
+    });
+  }
+
+  void getLocalStorage() {
+    setState(() {
       // name.value = TextEditingValue(text: storage.getItem('ho'));
-      // lastname.value =TextEditingValue(text: storage.getItem('ten'));
+      // lastname.value = TextEditingValue(text: storage.getItem('ten'));
       // khoa.value = TextEditingValue(text: storage.getItem('khoa'));
       // lop.value = TextEditingValue(text: storage.getItem('lop'));
       // place.value = TextEditingValue(text: storage.getItem('quequan'));
@@ -69,24 +96,13 @@ class MyCustomFormState extends State<MyCustomForm> {
     });
   }
 
-  void getLocalStorage() {
-    setState(() {
-      name.value = TextEditingValue(text: storage.getItem('ho'));
-      lastname.value = TextEditingValue(text: storage.getItem('ten'));
-      khoa.value = TextEditingValue(text: storage.getItem('khoa'));
-      lop.value = TextEditingValue(text: storage.getItem('lop'));
-      place.value = TextEditingValue(text: storage.getItem('quequan'));
-      khoa.value = TextEditingValue(text: storage.getItem('phone'));
-    });
-  }
-
   void setLocalStorage() {
-    storage.setItem('ho', name.text);
-    storage.setItem('ten', lastname.text);
-    storage.setItem('khoa', khoa.text);
-    storage.setItem('lop', lop.text);
-    storage.setItem('quequan', place.text);
-    storage.setItem('phone', phone.text);
+    // storage.setItem('ho', name.text);
+    // storage.setItem('ten', lastname.text);
+    // storage.setItem('khoa', khoa.text);
+    // storage.setItem('lop', lop.text);
+    // storage.setItem('quequan', place.text);
+    // storage.setItem('phone', phone.text);
   }
 
   @override
@@ -95,7 +111,7 @@ class MyCustomFormState extends State<MyCustomForm> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text("create profile"),
+        title: const Text("Create News"),
       ),
       body: Center(
         child: Column(
@@ -136,23 +152,49 @@ class MyCustomFormState extends State<MyCustomForm> {
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 16),
-                                  child: TextField(
-                                    controller: name,
-                                    decoration: const InputDecoration(
-                                      border: OutlineInputBorder(),
-                                      hintText: 'Nhập họ và tên đệm:',
-                                    ),
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          "Thể loại bài viết",
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.normal),
+                                        ),
+                                      ),
+                                      TextField(
+                                        controller: type,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText: 'Nhập thể loại bài viết:',
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 16),
-                                  child: TextField(
-                                    controller: lastname,
-                                    decoration: const InputDecoration(
-                                      border: OutlineInputBorder(),
-                                      hintText: 'Nhập tên:',
-                                    ),
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          "Tiêu đề bài viết",
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.normal),
+                                        ),
+                                      ),
+                                      TextField(
+                                        controller: title,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText: 'Nhập tiêu đề bài viết:',
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -165,23 +207,50 @@ class MyCustomFormState extends State<MyCustomForm> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 16),
-                                child: TextField(
-                                  controller: khoa,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Nhập khoa:',
-                                  ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "Nội dung bài viết",
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.normal),
+                                      ),
+                                    ),
+                                    TextField(
+                                      controller: content,
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        hintText: 'Nhập nội dung bài viết:',
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 16),
-                                child: TextField(
-                                  controller: lop,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Nhập lớp:',
-                                  ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "Tên tác giả muốn hiển thị",
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.normal),
+                                      ),
+                                    ),
+                                    TextField(
+                                      controller: author,
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        hintText:
+                                            'Nhập tên tác giả muốn hiển thị:',
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -193,23 +262,25 @@ class MyCustomFormState extends State<MyCustomForm> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 16),
-                                child: TextField(
-                                  controller: place,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Nhập quê quán:',
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 16),
-                                child: TextField(
-                                  controller: phone,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Nhập sđt:',
-                                  ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "Hình ảnh",
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.normal),
+                                      ),
+                                    ),
+                                    TextField(
+                                      controller: image,
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        hintText: 'Hình ảnh',
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -223,45 +294,35 @@ class MyCustomFormState extends State<MyCustomForm> {
                       onPressed: () {
                         // Validate returns true if the form is valid, or false otherwise.
                         if (_formKey.currentState!.validate()) {
-                          // If the form is valid, display a snackbar. In the real world,
-                          // you'd often call a server or save the information in a database.
-                          // ScaffoldMessenger.of(context).showSnackBar(
-                          //   SnackBar(content: Text(nameController.text)),
-                          // );
-                          String data =
-                              '${name.text} ${lastname.text}\n${khoa.text} ${lop.text}\n${phone.text} ${place.text}';
-                          setLocalStorage();
-                          getLocalStorage();
+                          if (typeEdit == 1) {
+                            var keyUpdate = storage.getItem('key').toString().replaceAll('${item.type}${item.newsTitle}${item.date}', "").replaceAll(';;', ";");
+                          if(keyUpdate == ';'){
+                            keyUpdate = "";
+                          }
+                          storage.setItem("key", keyUpdate);
+                            storage.deleteItem(
+                                '${item.type}${item.newsTitle}${item.date}');
+                          }
+
+                          DateTime now = new DateTime.now();
+                          DateTime date =
+                              new DateTime(now.year, now.month, now.day);
+                          var outputFormat = DateFormat('MM/dd/yyyy');
+                          var outputDate = outputFormat.format(date);
+                          NewsItem itemAdd = NewsItem(image.text, title.text,
+                              author.text, outputDate, type.text, content.text);
+                          addItemsToLocalStorage(itemAdd);
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => ShowProfile(
-                                        data: data,
+                                  builder: (context) => DetailsScreen(
+                                        item: itemAdd,
+                                        tag: itemAdd.newsTitle,
+                                        storage: storage,
                                       )));
                         }
                       },
-                      child: const Text('Submit'),
-                    ),
-                  ),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Validate returns true if the form is valid, or false otherwise.
-                        if (_formKey.currentState!.validate()) {
-                          // If the form is valid, display a snackbar. In the real world,
-                          // you'd often call a server or save the information in a database.
-                          // ScaffoldMessenger.of(context).showSnackBar(
-                          //   SnackBar(content: Text(nameController.text)),
-                          // );
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const FetchData()));
-                        }
-                      },
-                      child: const Text('Redirect to FetchData Page'),
+                      child: Text(getType()),
                     ),
                   )
                 ],

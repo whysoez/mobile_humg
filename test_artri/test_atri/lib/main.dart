@@ -1,8 +1,14 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:localstorage/localstorage.dart';
 import 'package:test_atri/details.dart';
+import 'package:test_atri/fetchNews.dart';
 import 'package:test_atri/listwidget.dart';
 import 'package:test_atri/main2.dart';
+import 'package:test_atri/main3.dart';
+import 'package:test_atri/main4.dart';
 import 'package:test_atri/shared/listitem.dart';
 
 void main() {
@@ -31,38 +37,53 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
 with SingleTickerProviderStateMixin {
 
-List<NewsItem> listItems = [
-  NewsItem(
-    "https://2.imimg.com/data2/DR/CR/MY-3998144/sports-products-500x500.jpg",
-    "lorem news",
-    "lorem content",
-    "20 Jan 2020"
-  ),
-  NewsItem(
-    "https://riseuplabs.com/wp-content/uploads/2021/06/ecommerce-app-development-article-inner-thumbnail.webp",
-    "lorem news",
-    "lorem content",
-    "20 Jan 2020"
-  ),
-  NewsItem(
-    "https://2.imimg.com/data2/DR/CR/MY-3998144/sports-products-500x500.jpg",
-    "lorem news",
-    "lorem content",
-    "20 Jan 2020"
-  ),
-  NewsItem(
-    "https://2.imimg.com/data2/DR/CR/MY-3998144/sports-products-500x500.jpg",
-    "lorem news",
-    "lorem content",
-    "20 Jan 2020"
-  ),
-  NewsItem(
-    "https://2.imimg.com/data2/DR/CR/MY-3998144/sports-products-500x500.jpg",
-    "lorem news",
-    "lorem content",
-    "20 Jan 2020"
-  )
-];
+LocalStorage storage = LocalStorage("newsapp");
+int countInstance = 0;
+
+void showItemsStorage(String key){
+  NewsItem item = NewsItem.fromJson(jsonDecode(key) as Map<String, dynamic>);
+  print('${item.newsTitle}; ${item.author}; ${item.date}');
+}
+
+void editItemsStorage(NewsItem itemOld, NewsItem itemNew){
+  storage.deleteItem('${itemOld.type}${itemOld.newsTitle}${itemNew.date}');
+  storage.setItem('${itemNew.type}${itemNew.newsTitle}${itemNew.date}', '${json.encode(itemNew.ToJson())}');
+}
+
+NewsItem getItems(int index) {
+  var index1 = storage.getItem('key').toString().split(';');
+  var test2 = storage.getItem('key').toString().split(';')[index];
+  var test = storage.getItem(storage.getItem('key').toString().split(';')[index]);
+  var atest = jsonDecode(test);
+  NewsItem result = NewsItem("imgUrl", "newsTitle", "author", "date", "type", "content");
+  if(test != null){
+  result = NewsItem.fromJson(jsonDecode(test) as Map<String, dynamic>);
+  }
+  return result;
+}
+
+List<NewsItem> initNews(){
+  List<NewsItem> result = [];
+  var atest = storage.getItem('key');
+  if(atest != null && atest != ""){
+  int lengthNews = storage.getItem('key').toString().split(';').length;
+  for(int i = 0; i< lengthNews; i++){
+    result.add(getItems(i));
+  }
+  }
+  return result;
+}
+
+// List<NewsItem> checkUpdateNews(){
+//   var items = initNews();
+//   if(items.length != countInstance){
+//     listItems = items;
+//     countInstance = items.length;
+//   }
+//   return items;
+// }
+
+List<NewsItem> listItems = [];
 
   List<Tab> _tabList = [
     Tab(child: Text("Top"),),
@@ -76,11 +97,15 @@ List<NewsItem> listItems = [
   late TabController _tabController;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _tabController = TabController(vsync: this, length: _tabList.length);
+    storage.ready.whenComplete(() => setState(() {
+      listItems = initNews();
+      countInstance = listItems.length;
+    }));
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -93,6 +118,21 @@ List<NewsItem> listItems = [
         leading: IconButton(onPressed: (){
 
         }, icon: Icon(Icons.menu, color: Colors.black,)),
+        actions: [Container(
+          decoration: BoxDecoration(
+            borderRadius:  BorderRadius.circular(50),
+            gradient: const LinearGradient(colors: [Colors.grey, Colors.blue])
+          ),
+          child: IconButton(onPressed:() {
+            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MyCustomForm(newsItem: NewsItem("", "", "", "", "",""), typeInput: 0, storage: storage,)));
+          }, icon: Icon(Icons.add,
+          color: Colors.black,
+          size: 30,
+          )),
+        )],
         backgroundColor: Colors.white,
         centerTitle: true,
         title: Text("News App", style: TextStyle(
@@ -115,18 +155,22 @@ List<NewsItem> listItems = [
           Padding(padding: EdgeInsets.all(8.0),
           child: Container(
             child: ListView.builder(
-              itemCount: listItems.length,
+              itemCount: countInstance,
               itemBuilder: (context, index) {
               return InkWell(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsScreen(item: listItems[index], tag: listItems[index].newsTitle)));
+                  var test = storage.getItem(storage.getItem('key').toString().split(';')[index]);
+                  NewsItem dataItem = NewsItem.fromJson(jsonDecode(test) as Map<String, dynamic>);
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsScreen(item: dataItem,
+                   tag: dataItem.newsTitle,
+                   storage: storage,)));
                 },
-                child: listWidget(listItems[index]),
+                child: listWidget(initNews()[index]),
               );
             }),
-          ),),
-          Padding(padding: EdgeInsets.all(8.0),
-          child: Container(),),
+            
+          ),
+          ),
           Padding(padding: EdgeInsets.all(8.0),
           child: Container(),),
           Padding(padding: EdgeInsets.all(8.0),
@@ -139,6 +183,10 @@ List<NewsItem> listItems = [
           child: Container(),),
         ],
       ),
+      floatingActionButton: FloatingActionButton(onPressed: () => setState(() {
+        countInstance = initNews().length;
+      }),
+      child: Icon(Icons.refresh),),
     );
   }
 }

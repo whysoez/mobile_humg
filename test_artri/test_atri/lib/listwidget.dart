@@ -8,13 +8,16 @@ Widget listWidget(NewsItem item){
     margin: EdgeInsets.only(bottom: 20.0),
     child: Padding(padding: EdgeInsets.all(8.0),
     child: Row(children: [
-      Container(
-        width: 80.0,
-        height: 80,
-        decoration: BoxDecoration(
-          image: DecorationImage(image: NetworkImage(item.imgUrl), fit: BoxFit.cover),
-          borderRadius: BorderRadius.circular(8.0)
-        )
+      Hero(
+        tag: '${item.newsTitle}',
+        child: Container(
+          width: 80.0,
+          height: 80,
+          decoration: BoxDecoration(
+            image: DecorationImage(image: NetworkImage(item.imgUrl), fit: BoxFit.cover),
+            borderRadius: BorderRadius.circular(8.0)
+          )
+        ),
       ),
       SizedBox(
         width: 5.0,
